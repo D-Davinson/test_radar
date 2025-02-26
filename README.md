@@ -1,202 +1,91 @@
-📡 RADAR - Researcher Automatic Detection & Address Retrieval
-🚀 Objective
-RADAR automates the search for researchers based on a research topic or a specific researcher's name.
-It utilizes Google Scholar (via SerpAPI) and Perplexity AI to retrieve:
+#  📡 _PROJECT_ - RADAR - Researcher Automatic Detection & Address Retrieval
 
-Researcher profiles
-H-index values
-Affiliations
-Institution addresses
-Geolocation mapping of researchers
+## 💫 Objective
+
+### RADAR automates the search for researchers based on a research topic or a specific researcher's name.
+It utilizes **Google Scholar** (via SerpAPI) and **Perplexity AI** to retrieve:
+
+- Researcher profiles
+- H-index values
+- Affiliations
+- Institution addresses
+- Geolocation mapping of researchers
+
 The system also supports:
 
 ✔ Filtering (H-index, country, location-based search)
+
 ✔ Automated researcher name validation via Perplexity AI
+
 ✔ Visualization on an interactive world map
 
-📦 Libraries Used
-🔧 Dependencies
-Type	Library
-Standard	os, re, time, random, json
-PyPi	streamlit, scholarly, serpapi, folium, geopy, pandas, pycountry, openai
-🔧 Installation
+## 📦 Libraries Used :
+
+### 🔧 Dependencies
+| Type of package | Import |
+|-|-|
+|Standard| ```os``` , ```re``` , ```time``` , ```random``` , ```json``` |
+|PyPi| ```streamlit``` , ```scholarly``` , ```google_search_result``` ,```streamlit-folium```, ```folium``` ,```python-dotenv```,```certifi```, ```geopy``` , ```pandas``` , ```pycountry``` , ```openai``` |
+
+### 🔧 Installation
+
 To install all dependencies, run:
 
-bash
-Copier
-Modifier
-pip install streamlit scholarly serpapi folium geopy pandas pycountry openai
-💡 Project Structure
-📂 Main Components
-Component	Description
-search_scholars_from_theme()	Extracts authors and publications related to a research theme.
-get_scholar_names_perplexity()	Retrieves full researcher names while verifying publication authorship.
-find_scholar_profile_serpapi()	Finds a researcher's Google Scholar profile via SerpAPI.
-get_scholar_profile_serpapi()	Extracts affiliation and H-index from the profile.
-get_affiliation_address_serpapi()	Retrieves the address and country of institutions via Google Search.
-get_affiliation_address_perplexity()	Uses Perplexity AI to refine and validate institution addresses.
-display_researcher_map()	Displays researchers on an interactive world map.
-🔍 Implementation Details
-Step 1: Searching for Researchers by Theme
-Extracts authors and publications related to a given research theme.
+```
+$ pip install streamlit scholarly google-search-results streamlit-folium folium python-dotenv certifi geopy pandas pycountry openai
+```
 
-python
-Copier
-Modifier
-def search_scholars_from_theme(theme, max_results=35):
-    """Search Google Scholar for authors based on a research theme."""
-    try:
-        search_query = scholarly.search_pubs(theme)
-        authors_list, publications_list = set(), []
+## 💡 Project Structure
 
-        for _ in range(max_results):
-            try:
-                publication = next(search_query)
-                title = publication['bib'].get('title', "Unknown title")
-                authors = publication['bib'].get('author', [])
+### 📂 Main Components
 
-                if isinstance(authors, str):
-                    authors = authors.split(", ")
+| Functions | _Description_ |
+|-|-|
+|```search_scholars_from_theme(theme,max_result)```|Extracts authors and publications related to a research theme.|
+|```get_scholar_names_perplexity(authors, publications)```|Retrieves full researcher names while verifying publication authorship.|
+|```find_scholar_profile(full_name)```|Finds a researcher's Google Scholar profile via SerpAPI.|
+|```get_scholar_profile_serpapi(scholar_url)```|Extracts affiliation and H-index from the profile.|
+|```clean_affiliation(affiliation)```|Clean affiliation by removing titles and departments to normalize the institution names|
+|```parse_affiliation_addresses(response_text)```|Convert raw response from Perplexity into a dictionary ```{Affiliation: (Address, Country)}```|
+|```get_affiliation_address_perplexity(affiliations)```|Uses Perplexity AI to search for the full address and country of the listed institutions using bi-word indexing|
+|```find_best_match(original_affiliation, affiliation_data)```|Find the best approximate match between an original affiliation and Perplexity results|
+|```parse_expanded_affiliations(response_text)```|Convert raw response from Perplexity into a dictionary ```{Abbreviation: Full name}```|
+|```expand_affiliation_abbreviations(affiliations)```|Uses Perplexity AI to obtain the full name of abbreviated affiliations|
+|```standardize_country(country_name)```|Convert variants of countries to their official name using pycountry|
+|```calculate_h_index(publications)```|	Computes the H-index from a researcher’s list of publications|
+|```search_scholar_with_h_index(query, max_articles)```|Retrieves a researcher’s profile and top articles based on their H-index|
+|```get_coordinates_from_address(address)```|Converts an address into latitude and longitude using Geopy|
+|```display_researcher_map(df, user_lat, user_lon, search_radius)```|Displays researchers on an interactive world map, filtering them by distance|
 
-                for author in authors:
-                    authors_list.add(author.strip())
 
-                publications_list.append(title)
-            except StopIteration:
-                break
-        
-        return list(authors_list), publications_list
+## 💫 Implementation
 
-    except Exception as e:
-        print(f"Error searching Google Scholar: {e}")
-        return [], []
-Step 2: Retrieving the Researcher’s Full Name via Perplexity AI
-Ensures that the researcher’s name matches the publications found.
+### Run
 
-python
-Copier
-Modifier
-def get_scholar_names_perplexity(authors, publications):
-    """Retrieve full names of researchers and verify authorship using Perplexity AI."""
-    if not authors or not publications:
-        return None
+To compile the program :
+```
+$ clone https://github.com/D-Davinson/PROJET-RADAR.git
+```
+_Open the reposotory PROJET-RADAR_
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are an expert in academic research. "
-                "Your task is to retrieve the **full names** of the listed researchers "
-                "and **verify that they are indeed the authors** of the publications found on Google Scholar."
-            ),
-        },
-        {   
-            "role": "user",
-            "content": (
-                "Perform a **search on Google Scholar** to retrieve the **full names** "
-                "of the researchers listed below, based on their work.\n\n"
-                "**⚠️ Ensure that these researchers are indeed the authors of the publications below.**\n"
-                "**If a found name is not linked to the publications, DO NOT INCLUDE IT.**\n\n"
-                f"📚 **Found publications:** {', '.join(publications)}\n\n"
-                f"👨‍🔬 **List of researchers extracted from Google Scholar:** {', '.join(authors)}\n\n"
-                "**Return only the list of valid full names, one per line.**"
-            ),
-        },
-    ]
+```
 
-    response = client.chat.completions.create(
-        model="sonar-pro",
-        messages=messages,
-    )
+$ streamlit run radar.py
+```
 
-    return response.choices[0].message.content if response else None
-Step 3: Finding the Researcher’s Profile on Google Scholar
-Using SerpAPI, the system finds the researcher's Google Scholar profile.
+## 🤖 Deployment
 
-python
-Copier
-Modifier
-def find_scholar_profile_serpapi(full_name):
-    """Uses SerpAPI to find a researcher’s Google Scholar profile."""
-    params = {
-        "engine": "google_scholar_profiles",
-        "q": full_name,
-        "api_key": os.getenv("SERPAPI_KEY"),
-    }
+The deployment is done on Streamlit Cloud and is accessible at the following address : https://datawizv1.streamlit.app/ 
 
-    search = GoogleSearch(params)
-    results = search.get_dict()
+## 👁️ View
 
-    if "profiles" in results:
-        first_profile = results["profiles"][0]  # Take the first found profile
-        scholar_id = first_profile.get("author_id")
-        if scholar_id:
-            return f"https://scholar.google.com/citations?user={scholar_id}"
+<img width="1509" alt="Capture d’écran 2025-02-26 à 12 50 24" src="https://github.com/user-attachments/assets/acb5ed12-4144-43ce-a145-4cd07ebfee27" />
+<img width="1502" alt="Capture d’écran 2025-02-26 à 13 06 53" src="https://github.com/user-attachments/assets/c51034cc-bd44-4c5e-a6ea-aed75c385712" />
+<img width="1510" alt="Capture d’écran 2025-02-26 à 12 51 32" src="https://github.com/user-attachments/assets/5a0f9ed4-63eb-44d6-a585-b5c321ee1d5e" />
+<img width="1512" alt="Capture d’écran 2025-02-26 à 13 11 07" src="https://github.com/user-attachments/assets/fef4fa6f-fd8e-4019-b17b-aa6009e52a6b" />
 
-    return None
-Step 4: Extracting Affiliation & H-index
-python
-Copier
-Modifier
-def get_scholar_profile_serpapi(scholar_url):
-    """Fetch researcher details from Google Scholar via SerpAPI."""
-    match = re.search(r"user=([a-zA-Z0-9_-]+)", scholar_url)
-    if not match:
-        return {"Name": "Error", "Affiliation": "Error", "H-index": "Error"}
+## 🧑🏽‍💻 Authors
 
-    scholar_id = match.group(1)
-    params = {
-        "engine": "google_scholar_author",
-        "author_id": scholar_id,
-        "api_key": os.getenv("SERPAPI_KEY"),
-    }
-
-    search = GoogleSearch(params)
-    results = search.get_dict()
-
-    if "author" in results:
-        profile = results["author"]
-        full_name = profile.get("name", "Unknown name")
-        affiliation = profile.get("affiliations", "Unknown affiliation")
-        h_index = results.get("cited_by", {}).get("table", [{}])[1].get("h_index", {}).get("all", "Not available")
-
-        return {"Name": full_name, "Affiliation": affiliation, "H-index": h_index}
-
-    return {"Name": "Error", "Affiliation": "Error", "H-index": "Error"}
-Step 5: Retrieving the Institution Address
-python
-Copier
-Modifier
-def get_affiliation_address_serpapi(affiliations):
-    """Uses SerpAPI to search for institution addresses and countries."""
-    if not affiliations:
-        return {}
-
-    affiliation_data = {}
-
-    for affiliation in affiliations:
-        params = {
-            "engine": "google_search",
-            "q": f"{affiliation} address",
-            "api_key": os.getenv("SERPAPI_KEY"),
-        }
-
-        search = GoogleSearch(params)
-        results = search.get_dict()
-
-        if "organic_results" in results and results["organic_results"]:
-            first_result = results["organic_results"][0]
-            address = first_result.get("snippet", "Address not found")
-            country = "Unknown"
-
-            for word in address.split():
-                if word in pycountry.countries:
-                    country = pycountry.countries.lookup(word).name
-                    break
-
-            affiliation_data[affiliation] = (address, country)
-
-    return affiliation_data
-🧑🏽‍💻 Authors
-@Davinson DOGLAS PRINCE
-@Exaucé MAKELE
+- [@Davinson DOGLAS PRINCE](https://github.com/D-Davinson)
+- [@Théo POSENEL](https://github.com/TheoPosenel)
+- [@Nahla HAMLETTE](https://github.com/Nahla213)
