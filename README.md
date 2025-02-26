@@ -69,7 +69,6 @@ $ clone https://github.com/D-Davinson/PROJET-RADAR.git
 _Open the reposotory PROJET-RADAR_
 
 ```
-
 $ streamlit run radar.py
 ```
 
